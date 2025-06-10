@@ -1,0 +1,1447 @@
+ Gemini
+Mejoras en Interfaz Responsiva HTML
+Mejoras Móviles de Interfaz Gráfica
+Conversación con Gemini
+
+Mejora la visualizacion y la interfaz grafica en dispositivos moviles y en celulares, hazlo responsive, en pcs esta super bien:
+
+
+<!DOCTYPE html>
+
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Simulador de Genética Mendeliana Avanzado</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/addons/p5.sound.min.js"></script>
+
+    <style>
+
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+        :root {
+
+            --primary-bg: #111827; --secondary-bg: #1f2937; --border-color: #374151;
+
+            --text-color: #e5e7eb; --accent-color: #38bdf8; --purple-color: #a78bfa;
+
+            --white-color: #f1f5f9; --success-color: #4ade80; --tall-color: #facc15;
+
+        }
+
+        body {
+
+            font-family: 'Inter', sans-serif; background-color: var(--primary-bg); color: var(--text-color);
+
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+
+            margin: 0; padding: 10px 20px; min-height: 100vh;
+
+        }
+
+        .lab-container { width: 100%; max-width: 1600px; display: flex; flex-direction: column; gap: 20px; }
+
+        h1 { color: var(--accent-color); text-shadow: 0 0 10px var(--accent-color); font-size: clamp(1.8em, 4vw, 3em); text-align: center; }
+
+        .main-grid { display: grid; grid-template-columns: 1fr 1.5fr 1fr; gap: 20px; width: 100%; }
+
+        .panel {
+
+            background-color: var(--secondary-bg); border: 1px solid var(--border-color);
+
+            border-radius: 16px; padding: clamp(15px, 2vw, 25px); box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+
+            display: flex; flex-direction: column; align-items: center; gap: 15px;
+
+        }
+
+        .panel h2 { margin: 0; color: var(--accent-color); border-bottom: 2px solid var(--accent-color); padding-bottom: 10px; width: 100%; text-align: center; font-size: clamp(1.2em, 3vw, 1.5em); }
+
+        .panel h3 { margin: 10px 0 5px 0; color: #9ca3af; text-transform: uppercase; font-size: 0.9em; }
+
+        .plant-card { width: 100%; text-align: center; }
+
+        .plant-visual { width: 150px; height: 150px; margin: 0 auto; border: 2px dashed var(--border-color); border-radius: 12px; }
+
+        .phenotype-description {
+
+            font-style: italic; color: #cbd5e1; height: 4.5em; /* Fixed height for 3 lines */
+
+            margin-top: 10px; margin-bottom: 5px; font-size: 0.9em;
+
+            transition: opacity 0.3s ease; text-align: center;
+
+            display: flex; align-items: center; justify-content: center;
+
+        }
+
+        .genotype-selector { display: flex; justify-content: center; gap: 5px; flex-wrap: wrap;}
+
+        .genotype-selector button {
+
+            background: #374151; color: var(--text-color); border: 1px solid #4b5563;
+
+            padding: 8px 12px; font-size: 1.1em; font-weight: 600; cursor: pointer; transition: all 0.2s ease;
+
+        }
+
+        .genotype-selector button.active { background: var(--accent-color); color: var(--primary-bg); border-color: var(--accent-color); transform: scale(1.1); }
+
+        #cross-btn {
+
+            grid-column: 2; background: linear-gradient(45deg, var(--accent-color), var(--success-color));
+
+            color: white; border: none; padding: 15px 30px; font-size: 1.5em; font-weight: 700;
+
+            border-radius: 12px; cursor: pointer; transition: all 0.3s ease;
+
+        }
+
+        #cross-btn:hover { transform: scale(1.05); box-shadow: 0 0 20px var(--accent-color); }
+
+        #cross-btn:disabled { background: #4b5563; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        #punnett-square-container {
+
+            display: grid;
+
+            grid-template-columns: 0.5fr repeat(4, 1fr);
+
+            grid-template-rows: 0.5fr repeat(4, 1fr);
+
+            width: 100%; max-width: 400px; aspect-ratio: 1/1;
+
+            margin: 10px auto; border: 2px solid var(--border-color);
+
+        }
+
+        .punnett-cell {
+
+            border: 1px solid var(--border-color); display: flex;
+
+            align-items: center; justify-content: center; font-size: clamp(0.8em, 2.5vw, 1.2em);
+
+            font-weight: 700; transition: all 0.5s ease; flex-direction: column;
+
+        }
+
+        .punnett-cell span { line-height: 1; }
+
+        .allele { color: var(--accent-color); }
+
+        .genotype-result { opacity: 0; transform: scale(0.5); }
+
+        .genotype-result.visible { opacity: 1; transform: scale(1); }
+
+        #offspring-garden { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 10px; width: 100%; }
+
+        .pot { width: 100%; aspect-ratio: 1/1; background-color: #374151; border-radius: 0 0 10px 10px; position: relative; overflow: hidden; }
+
+        .plant-offspring { position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; }
+
+        #results-panel ul { list-style: none; padding: 0; width: 100%; }
+
+        #results-panel li { background: #374151; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 1.1em; display: flex; justify-content: space-between; }
+
+        
+
+        /* Modal Styles */
+
+        .modal-overlay {
+
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
+
+            display: none; align-items: center; justify-content: center; z-index: 1000;
+
+            opacity: 0; transition: opacity 0.3s ease;
+
+        }
+
+        .modal-overlay.visible { display: flex; opacity: 1; }
+
+        .modal-content {
+
+            background: var(--secondary-bg); border: 1px solid var(--accent-color);
+
+            border-radius: 16px; padding: 30px; width: 90%; max-width: 800px;
+
+            max-height: 90vh; overflow-y: auto; position: relative;
+
+            transform: scale(0.9); transition: transform 0.3s ease;
+
+        }
+
+        .modal-overlay.visible .modal-content { transform: scale(1); }
+
+        .modal-close {
+
+            position: absolute; top: 15px; right: 20px; font-size: 2em;
+
+            color: var(--text-color); cursor: pointer; border: none; background: none;
+
+        }
+
+        .modal-content h2 { color: var(--accent-color); }
+
+        .modal-content h3 { color: var(--success-color); border-bottom: 1px solid var(--border-color); padding-bottom: 5px; }
+
+        .modal-content p { line-height: 1.6; }
+
+        
+
+        @media (max-width: 1200px) {
+
+            .main-grid { grid-template-columns: 1fr; }
+
+            #cross-btn, .panel { grid-column: 1; }
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <div class="lab-container">
+
+        <h1>Laboratorio de Genética Mendeliana</h1>
+
+        <div class="main-grid">
+
+            <div class="panel">
+
+                <h2>Progenitor 1</h2>
+
+                <div class="plant-card">
+
+                    <div id="parent1-visual" class="plant-visual"></div>
+
+                    <h3>Color de Flor (A)</h3>
+
+                    <p id="parent1-color-description" class="phenotype-description"></p>
+
+                    <div id="p1-color-selector" class="genotype-selector">
+
+                        <button data-parent="1" data-trait="color" data-genotype="AA" class="active">AA</button>
+
+                        <button data-parent="1" data-trait="color" data-genotype="Aa">Aa</button>
+
+                        <button data-parent="1" data-trait="color" data-genotype="aa">aa</button>
+
+                    </div>
+
+                    <h3>Altura de Tallo (T)</h3>
+
+                    <p id="parent1-height-description" class="phenotype-description"></p>
+
+                    <div id="p1-height-selector" class="genotype-selector">
+
+                        <button data-parent="1" data-trait="height" data-genotype="TT" class="active">TT</button>
+
+                        <button data-parent="1" data-trait="height" data-genotype="Tt">Tt</button>
+
+                        <button data-parent="1" data-trait="height" data-genotype="tt">tt</button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            
+
+            <div class="panel">
+
+                <h2>Zona de Cruce</h2>
+
+                <div id="punnett-square-container"></div>
+
+            </div>
+
+            
+
+            <div class="panel">
+
+                <h2>Progenitor 2</h2>
+
+                <div class="plant-card">
+
+                    <div id="parent2-visual" class="plant-visual"></div>
+
+                    <h3>Color de Flor (A)</h3>
+
+                    <p id="parent2-color-description" class="phenotype-description"></p>
+
+                    <div id="p2-color-selector" class="genotype-selector">
+
+                        <button data-parent="2" data-trait="color" data-genotype="AA" class="active">AA</button>
+
+                        <button data-parent="2" data-trait="color" data-genotype="Aa">Aa</button>
+
+                        <button data-parent="2" data-trait="color" data-genotype="aa">aa</button>
+
+                    </div>
+
+                    <h3>Altura de Tallo (T)</h3>
+
+                    <p id="parent2-height-description" class="phenotype-description"></p>
+
+                    <div id="p2-height-selector" class="genotype-selector">
+
+                        <button data-parent="2" data-trait="height" data-genotype="TT" class="active">TT</button>
+
+                        <button data-parent="2" data-trait="height" data-genotype="Tt">Tt</button>
+
+                        <button data-parent="2" data-trait="height" data-genotype="tt">tt</button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <button id="cross-btn">Cruzar</button>
+
+
+            <div class="panel" style="grid-column: 1 / span 2;">
+
+                <h2>Jardín de Descendencia</h2>
+
+                <div id="offspring-garden"></div>
+
+            </div>
+
+            
+
+            <div class="panel" style="grid-column: 3;">
+
+                <h2>Análisis de Resultados</h2>
+
+                <ul id="results-panel"></ul>
+
+                <button id="analysis-btn" style="display:none; width: 100%; margin-top: 15px;">Ver Análisis y Leyes</button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    
+
+    <!-- Modal -->
+
+    <div id="analysis-modal" class="modal-overlay">
+
+        <div class="modal-content">
+
+            <button id="modal-close-btn" class="modal-close">&times;</button>
+
+            <h2 id="modal-title">Análisis del Cruce Genético</h2>
+
+            <div id="modal-body">
+
+                <h3>Descripción del Cruce</h3>
+
+                <p id="cross-description"></p>
+
+                <h3>Leyes de Mendel Aplicadas</h3>
+
+                <p><strong>1. Ley de la Segregación:</strong> Durante la formación de gametos (óvulos y espermatozoides), los dos alelos de cada gen se separan (segregan) el uno del otro, de modo que cada gameto recibe solo un alelo.</p>
+
+                <p><strong>2. Ley de la Segregación Independiente:</strong> Los alelos de diferentes genes se distribuyen en los gametos de forma independiente el uno del otro. Esto es visible en este cruce dihíbrido, donde el color de la flor y la altura del tallo se heredan sin afectarse mutuamente.</p>
+
+                <h3>Conclusiones</h3>
+
+                <p id="cross-conclusion"></p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+<script>
+
+let parent1Genotype = { color: 'AA', height: 'TT' };
+
+let parent2Genotype = { color: 'AA', height: 'TT' };
+
+let sounds = {};
+
+let audioStarted = false;
+
+
+// The p5.js global setup function. This runs once after the DOM is ready and p5 is loaded.
+
+function setup() {
+
+    noCanvas();
+
+    
+
+    sounds.click = new p5.Oscillator('sine');
+
+    sounds.click.freq(880); sounds.click.amp(0); sounds.click.start();
+
+    sounds.click.play = () => { sounds.click.amp(0.3, 0.01); sounds.click.amp(0, 0.1, 0.05); };
+
+
+    sounds.pop = new p5.Oscillator('triangle');
+
+    sounds.pop.freq(440); sounds.pop.amp(0); sounds.pop.start();
+
+    sounds.pop.play = (v=0.2,r=1) => { sounds.pop.freq(440*r); sounds.pop.amp(v, 0.01); sounds.pop.amp(0, 0.2, 0.05); };
+
+    
+
+    sounds.grow = new p5.Noise('white');
+
+    sounds.grow.amp(0); sounds.grow.start();
+
+    sounds.grow.play = () => { sounds.grow.amp(0.1, 0.1); sounds.grow.amp(0, 0.5, 0.2); };
+
+
+    document.querySelectorAll('.genotype-selector button').forEach(button => button.addEventListener('click', handleGenotypeSelection));
+
+    document.getElementById('cross-btn').addEventListener('click', handleCross);
+
+    
+
+    const modal = document.getElementById('analysis-modal');
+
+    document.getElementById('modal-close-btn').onclick = () => modal.classList.remove('visible');
+
+    modal.onclick = (e) => { if (e.target === modal) modal.classList.remove('visible'); };
+
+
+    createPunnettGrid();
+
+    for (let i = 0; i < 16; i++) {
+
+        document.getElementById('offspring-garden').appendChild(document.createElement('div')).className = 'pot';
+
+    }
+
+    
+
+    updateParentVisual('1', parent1Genotype);
+
+    updateParentVisual('2', parent2Genotype);
+
+    updatePhenotypeDescription('1', 'color', 'AA');
+
+    updatePhenotypeDescription('1', 'height', 'TT');
+
+    updatePhenotypeDescription('2', 'color', 'AA');
+
+    updatePhenotypeDescription('2', 'height', 'TT');
+
+}
+
+
+const plantSketch = (phenotype) => (p) => {
+
+    p.setup = () => {
+
+        const parentDiv = p.canvas.parentElement;
+
+        p.createCanvas(parentDiv.offsetWidth, parentDiv.offsetHeight);
+
+        p.noLoop();
+
+    };
+
+    p.draw = () => {
+
+        p.clear();
+
+        p.translate(p.width / 2, p.height);
+
+        let stemHeight = phenotype.height === 'tall' ? p.height * 0.6 : p.height * 0.35;
+
+        p.stroke(74, 222, 128); p.strokeWeight(4); p.line(0, 0, 0, -stemHeight);
+
+        p.noStroke(); p.fill(74, 222, 128);
+
+        p.ellipse(-15, -stemHeight * 0.5, 20, 10);
+
+        p.ellipse(15, -stemHeight * 0.7, 20, 10);
+
+        p.translate(0, -stemHeight - 5);
+
+        p.fill(phenotype.color === 'purple' ? p.color(167, 139, 250) : p.color(241, 245, 249));
+
+        p.stroke('#fcd34d'); p.strokeWeight(2);
+
+        for (let i = 0; i < 5; i++) {
+
+            p.ellipse(0, -15, 15, 25); p.rotate(p.TWO_PI / 5);
+
+        }
+
+        p.fill('#fcd34d'); p.noStroke(); p.ellipse(0, 0, 15, 15);
+
+    };
+
+};
+
+
+const offspringPlantSketch = (phenotype) => (p) => {
+
+    let growth = 0;
+
+    p.setup = () => {
+
+        const parent = p.canvas.parentElement;
+
+        p.createCanvas(parent.offsetWidth, parent.offsetHeight);
+
+        p.frameRate(30);
+
+    };
+
+    p.draw = () => {
+
+        p.clear();
+
+        growth = p.lerp(growth, 1, 0.05);
+
+        if (growth > 0.99) { growth = 1; p.noLoop(); }
+
+        p.translate(p.width/2, p.height);
+
+        let stemHeight = (phenotype.height === 'tall' ? p.height * 0.7 : p.height * 0.4) * growth;
+
+        p.stroke(74, 222, 128); p.strokeWeight(p.width*0.05); p.line(0,0,0, -stemHeight);
+
+        if(growth > 0.3){
+
+            p.fill(74, 222, 128); p.noStroke();
+
+            p.ellipse(-p.width*0.15, -stemHeight*0.5, p.width*0.3, p.height*0.1);
+
+        }
+
+        if(growth > 0.7){
+
+            p.translate(0, -stemHeight-5);
+
+            p.fill(phenotype.color === 'purple' ? p.color(167, 139, 250) : p.color(241, 245, 249));
+
+            p.stroke('#fcd34d'); p.strokeWeight(2);
+
+            for (let i = 0; i < 5; i++) {
+
+                p.ellipse(0, -p.height*0.12, p.width*0.15, p.height*0.2); p.rotate(p.TWO_PI / 5);
+
+            }
+
+            p.fill('#fcd34d'); p.noStroke(); p.ellipse(0, 0, p.width*0.15, p.height*0.15);
+
+        }
+
+    };
+
+};
+
+
+function getPhenotype(genotype) {
+
+    return {
+
+        color: genotype.color.includes('A') ? 'purple' : 'white',
+
+        height: genotype.height.includes('T') ? 'tall' : 'short'
+
+    };
+
+}
+
+
+function getGametes(genotype) {
+
+    const cAlleles = genotype.color.split('');
+
+    const hAlleles = genotype.height.split('');
+
+    const gametes = new Set();
+
+    for (let c of cAlleles) {
+
+        for (let h of hAlleles) { gametes.add(c + h); }
+
+    }
+
+    return Array.from(gametes);
+
+}
+
+
+function updateParentVisual(parentNum, genotype) {
+
+    document.getElementById(`parent${parentNum}-visual`).innerHTML = '';
+
+    new p5(plantSketch(getPhenotype(genotype)), `parent${parentNum}-visual`);
+
+}
+
+
+function startAudioContext() {
+
+    if (!audioStarted) {
+
+        if (typeof userStartAudio === 'function') {
+
+           userStartAudio();
+
+        }
+
+        audioStarted = true;
+
+    }
+
+}
+
+
+function updatePhenotypeDescription(parentNum, trait, genotype) {
+
+    const messages = {
+
+        color: {
+
+            AA: 'Una flor de un púrpura intenso, un color que domina el jardín.',
+
+            Aa: 'Portadora de la herencia recesiva, esta flor luce un majestuoso color púrpura.',
+
+            aa: 'Pura y delicada, esta flor muestra un blanco nieve que resalta en la naturaleza.'
+
+        },
+
+        height: {
+
+            TT: 'Con un tallo que se alza orgulloso, buscando siempre la luz.',
+
+            Tt: 'Fuerte y alta, esta planta lleva en su interior el gen de una estatura más baja.',
+
+            tt: 'Compacta y robusta, una planta de tallo bajo que concentra su belleza cerca del suelo.'
+
+        }
+
+    };
+
+    const descriptionElement = document.getElementById(`parent${parentNum}-${trait}-description`);
+
+    if (descriptionElement) {
+
+        descriptionElement.style.opacity = 0;
+
+        setTimeout(() => {
+
+            descriptionElement.innerText = messages[trait][genotype];
+
+            descriptionElement.style.opacity = 1;
+
+        }, 200);
+
+    }
+
+}
+
+
+
+function handleGenotypeSelection(event) {
+
+    startAudioContext();
+
+    sounds.click.play();
+
+    const { parent, trait, genotype } = event.target.dataset;
+
+
+    if (parent === '1') parent1Genotype[trait] = genotype;
+
+    else parent2Genotype[trait] = genotype;
+
+
+    document.querySelectorAll(`button[data-parent="${parent}"][data-trait="${trait}"]`).forEach(btn => btn.classList.remove('active'));
+
+    event.target.classList.add('active');
+
+
+    updateParentVisual(parent, parent === '1' ? parent1Genotype : parent2Genotype);
+
+    updatePhenotypeDescription(parent, trait, genotype);
+
+}
+
+
+function createPunnettGrid() {
+
+    const container = document.getElementById('punnett-square-container');
+
+    container.innerHTML = '';
+
+    for(let i=0; i<25; i++) {
+
+        container.appendChild(document.createElement('div')).id = `cell-${i}`;
+
+        document.getElementById(`cell-${i}`).className = 'punnett-cell';
+
+    }
+
+}
+
+
+function animatePunnettSquare(gametes1, gametes2) {
+
+    const timeouts = []; let delay = 200;
+
+    for(let i = 0; i < 4; i++) {
+
+        const g1 = gametes1[i % gametes1.length] || '';
+
+        timeouts.push(setTimeout(() => { document.getElementById(`cell-${i + 1}`).innerText = g1; sounds.pop.play(); }, delay));
+
+        delay += 100;
+
+
+        const g2 = gametes2[i % gametes2.length] || '';
+
+        timeouts.push(setTimeout(() => { document.getElementById(`cell-${(i + 1) * 5}`).innerText = g2; sounds.pop.play(); }, delay));
+
+        delay += 100;
+
+    }
+
+    
+
+    const results = [];
+
+    for(let i=0; i<4; i++){
+
+        for(let j=0; j<4; j++){
+
+            const g1 = gametes1[j % gametes1.length];
+
+            const g2 = gametes2[i % gametes2.length];
+
+            const colorGeno = (g1[0] + g2[0]).split('').sort().join('');
+
+            const heightGeno = (g1[1] + g2[1]).split('').sort().join('');
+
+            results.push({color: colorGeno, height: heightGeno});
+
+            
+
+            timeouts.push(setTimeout(() => {
+
+                const cell = document.getElementById(`cell-${(i+1)*5 + (j+1)}`);
+
+                cell.innerHTML = `<span>${colorGeno}</span><span>${heightGeno}</span>`;
+
+                cell.classList.add('visible', 'genotype-result');
+
+                sounds.pop.play(0.3, 1.5);
+
+            }, delay));
+
+            delay += 50;
+
+        }
+
+    }
+
+    return { results, timeouts };
+
+}
+
+
+function displayResults(results, phenotypeCounts) {
+
+    const resultsPanel = document.getElementById('results-panel');
+
+    resultsPanel.innerHTML = '<h3>Proporción Fenotípica</h3>';
+
+    for (const key in phenotypeCounts) {
+
+        const [color, height] = key.split('-');
+
+        const li = document.createElement('li');
+
+        li.innerHTML = `<span>${color === 'purple' ? 'Púrpura':'Blanca'}, ${height === 'tall' ? 'Alta':'Baja'}</span> <span>${(phenotypeCounts[key] / 16) * 100}%</span>`;
+
+        resultsPanel.appendChild(li);
+
+    }
+
+}
+
+
+function populateGarden(results) {
+
+    const garden = document.getElementById('offspring-garden');
+
+    garden.innerHTML = '';
+
+    for (let i = 0; i < 16; i++) {
+
+        const pot = garden.appendChild(document.createElement('div'));
+
+        pot.className = 'pot';
+
+        const plantContainer = pot.appendChild(document.createElement('div'));
+
+        plantContainer.className = 'plant-offspring';
+
+        
+
+        setTimeout(() => {
+
+            sounds.grow.play();
+
+            new p5(offspringPlantSketch(getPhenotype(results[i])), plantContainer);
+
+        }, i * 120 + 500);
+
+    }
+
+}
+
+
+function showAnalysisModal(p1, p2, phenotypeCounts) {
+
+    document.getElementById('cross-description').innerText = `Se cruzó un progenitor con genotipo ${p1.color}${p1.height} con otro de genotipo ${p2.color}${p2.height}.`;
+
+    let conclusionText = 'Los resultados muestran una distribución de rasgos basada en la dominancia y la segregación de alelos.';
+
+    if (phenotypeCounts['purple-tall'] === 9 && phenotypeCounts['purple-short'] === 3 && phenotypeCounts['white-tall'] === 3 && phenotypeCounts['white-short'] === 1) {
+
+        conclusionText = 'Los resultados exhiben la clásica proporción fenotípica 9:3:3:1, una demostración perfecta de la Ley de Segregación Independiente de Mendel para un cruce dihíbrido entre dos heterocigotos completos.';
+
+    }
+
+    document.getElementById('cross-conclusion').innerText = conclusionText;
+
+    document.getElementById('analysis-modal').classList.add('visible');
+
+}
+
+
+let currentAnimationTimeouts = [];
+
+function handleCross() {
+
+    startAudioContext();
+
+    sounds.click.play(1, 1.5);
+
+    document.getElementById('cross-btn').disabled = true;
+
+    currentAnimationTimeouts.forEach(clearTimeout);
+
+    currentAnimationTimeouts = [];
+
+    
+
+    createPunnettGrid();
+
+    
+
+    const gametes1 = getGametes(parent1Genotype);
+
+    const gametes2 = getGametes(parent2Genotype);
+
+
+    const { results, timeouts } = animatePunnettSquare(gametes1, gametes2);
+
+    currentAnimationTimeouts = timeouts;
+
+    
+
+    const finalTimeout = setTimeout(() => {
+
+        const phenotypeCounts = {};
+
+        results.forEach(res => {
+
+            const phenotype = getPhenotype(res);
+
+            const phenotypeKey = `${phenotype.color}-${phenotype.height}`;
+
+            phenotypeCounts[phenotypeKey] = (phenotypeCounts[phenotypeKey] || 0) + 1;
+
+        });
+
+        
+
+        displayResults(results, phenotypeCounts);
+
+        populateGarden(results);
+
+        
+
+        const analysisBtn = document.getElementById('analysis-btn');
+
+        analysisBtn.style.display = 'block';
+
+        analysisBtn.onclick = () => showAnalysisModal(parent1Genotype, parent2Genotype, phenotypeCounts);
+
+        document.getElementById('cross-btn').disabled = false;
+
+    }, timeouts.length * 50 + 1100);
+
+    currentAnimationTimeouts.push(finalTimeout);
+
+}
+
+</script>
+
+</body>
+
+</html>
+
+Claro, aquí tienes el código HTML y CSS mejorado para que la visualización y la interfaz gráfica sean responsivas y se vean excelentes en dispositivos móviles.
+Resumen de los cambios:
+
+    Flexbox para el Layout Principal: Se ha modificado .main-grid para usar Flexbox en pantallas pequeñas, lo que permite un reordenamiento más natural y adaptable de los paneles.
+    Media Queries Específicas: Se han añadido media queries para diferentes tamaños de pantalla (max-width: 992px y max-width: 768px) para ajustar el diseño de forma progresiva.
+    Ajustes de Tamaño y Espaciado: Se han hecho más flexibles los tamaños de las visualizaciones de las plantas (.plant-visual), el Cuadro de Punnett y los botones, utilizando unidades relativas y clamp() para que se adapten mejor al ancho de la pantalla.
+    Optimización de Paneles: En móviles, los paneles de los progenitores y el de cruce se apilan verticalmente. Los paneles de "Jardín de Descendencia" y "Análisis de Resultados" también se ajustan para ocupar todo el ancho, mejorando la legibilidad.
+    Reordenamiento con order: Se utiliza la propiedad order de Flexbox para cambiar el orden visual de los elementos en móviles, colocando el botón "Cruzar" en una posición más lógica después de los paneles de los progenitores.
+
+Código Mejorado
+HTML
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Genética Mendeliana Avanzado</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/addons/p5.sound.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        :root {
+            --primary-bg: #111827; --secondary-bg: #1f2937; --border-color: #374151;
+            --text-color: #e5e7eb; --accent-color: #38bdf8; --purple-color: #a78bfa;
+            --white-color: #f1f5f9; --success-color: #4ade80; --tall-color: #facc15;
+        }
+        body {
+            font-family: 'Inter', sans-serif; background-color: var(--primary-bg); color: var(--text-color);
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start; /* Changed */
+            margin: 0; padding: 20px; min-height: 100vh; box-sizing: border-box; /* Added */
+        }
+        .lab-container { width: 100%; max-width: 1600px; display: flex; flex-direction: column; gap: 20px; }
+        h1 { color: var(--accent-color); text-shadow: 0 0 10px var(--accent-color); font-size: clamp(1.8rem, 5vw, 2.5rem); text-align: center; margin-bottom: 20px; }
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr 1fr;
+            grid-template-rows: auto auto; /* Added */
+            gap: 20px; width: 100%;
+            grid-template-areas: /* Added */
+                "parent1 cross parent2"
+                "garden garden results";
+        }
+        #parent1-panel { grid-area: parent1; }
+        #cross-panel { grid-area: cross; }
+        #parent2-panel { grid-area: parent2; }
+        #cross-btn { grid-area: cross; align-self: end; margin-bottom: 25px; z-index: 10;}
+        #garden-panel { grid-area: garden; }
+        #results-panel-container { grid-area: results; }
+
+        .panel {
+            background-color: var(--secondary-bg); border: 1px solid var(--border-color);
+            border-radius: 16px; padding: clamp(15px, 3vw, 25px); box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            display: flex; flex-direction: column; align-items: center; gap: 15px;
+        }
+        .panel h2 { margin: 0; color: var(--accent-color); border-bottom: 2px solid var(--accent-color); padding-bottom: 10px; width: 100%; text-align: center; font-size: clamp(1.2rem, 4vw, 1.5rem); }
+        .panel h3 { margin: 10px 0 5px 0; color: #9ca3af; text-transform: uppercase; font-size: 0.9em; }
+        .plant-card { width: 100%; text-align: center; }
+        .plant-visual { width: clamp(120px, 100%, 150px); height: clamp(120px, 100%, 150px); margin: 10px auto; border: 2px dashed var(--border-color); border-radius: 12px; }
+        .phenotype-description {
+            font-style: italic; color: #cbd5e1; height: auto; min-height: 4.5em;
+            margin: 10px 0; font-size: 0.9em; transition: opacity 0.3s ease; text-align: center;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .genotype-selector { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;}
+        .genotype-selector button {
+            background: #374151; color: var(--text-color); border: 1px solid #4b5563;
+            padding: 10px 15px; font-size: clamp(1rem, 3vw, 1.1rem); font-weight: 600; cursor: pointer; transition: all 0.2s ease;
+            border-radius: 8px; /* Added */
+        }
+        .genotype-selector button.active { background: var(--accent-color); color: var(--primary-bg); border-color: var(--accent-color); transform: scale(1.1); }
+        #cross-btn {
+            background: linear-gradient(45deg, var(--accent-color), var(--success-color));
+            color: white; border: none; padding: 15px 30px; font-size: clamp(1.2rem, 4vw, 1.5rem); font-weight: 700;
+            border-radius: 12px; cursor: pointer; transition: all 0.3s ease; width: fit-content; margin: 0 auto;
+        }
+        #cross-btn:hover { transform: scale(1.05); box-shadow: 0 0 20px var(--accent-color); }
+        #cross-btn:disabled { background: #4b5563; cursor: not-allowed; transform: none; box-shadow: none; }
+        #punnett-square-container {
+            display: grid;
+            grid-template-columns: 0.5fr repeat(4, 1fr);
+            grid-template-rows: 0.5fr repeat(4, 1fr);
+            width: 100%; max-width: 400px; aspect-ratio: 1/1;
+            margin: 10px auto; border: 2px solid var(--border-color);
+        }
+        .punnett-cell {
+            border: 1px solid var(--border-color); display: flex;
+            align-items: center; justify-content: center; font-size: clamp(0.7rem, 2.5vw, 1rem);
+            font-weight: 700; transition: all 0.5s ease; flex-direction: column;
+        }
+        .punnett-cell span { line-height: 1; }
+        .allele { color: var(--accent-color); }
+        .genotype-result { opacity: 0; transform: scale(0.5); }
+        .genotype-result.visible { opacity: 1; transform: scale(1); }
+        #offspring-garden { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 15px; width: 100%; padding-top: 10px; }
+        .pot { width: 100%; aspect-ratio: 1/1; background-color: #374151; border-radius: 0 0 10px 10px; position: relative; overflow: hidden; }
+        .plant-offspring { position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; }
+        #results-panel-container ul { list-style: none; padding: 0; width: 100%; }
+        #results-panel-container li { background: #374151; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-size: clamp(0.9rem, 2.5vw, 1.1rem); display: flex; justify-content: space-between; align-items: center; }
+        #analysis-btn { display:none; width: 100%; margin-top: 15px; padding: 12px; font-size: 1rem; background-color: var(--accent-color); color: var(--primary-bg); border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
+
+        /* Modal Styles */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); display: none; align-items: center; justify-content: center; z-index: 1000; opacity: 0; transition: opacity 0.3s ease; padding: 15px; }
+        .modal-overlay.visible { display: flex; opacity: 1; }
+        .modal-content { background: var(--secondary-bg); border: 1px solid var(--accent-color); border-radius: 16px; padding: 30px; width: 100%; max-width: 800px; max-height: 90vh; overflow-y: auto; position: relative; transform: scale(0.9); transition: transform 0.3s ease; }
+        .modal-overlay.visible .modal-content { transform: scale(1); }
+        .modal-close { position: absolute; top: 15px; right: 20px; font-size: 2em; color: var(--text-color); cursor: pointer; border: none; background: none; }
+        .modal-content h2 { color: var(--accent-color); font-size: clamp(1.3rem, 4vw, 1.7rem); }
+        .modal-content h3 { color: var(--success-color); border-bottom: 1px solid var(--border-color); padding-bottom: 5px; }
+        .modal-content p { line-height: 1.6; font-size: clamp(0.9rem, 2.5vw, 1rem); }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr 1fr;
+                grid-template-areas:
+                    "parent1 parent2"
+                    "cross cross"
+                    "garden results";
+            }
+             #cross-btn {
+                margin-top: 0;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .main-grid {
+                display: flex; /* Switch to flexbox for simpler stacking */
+                flex-direction: column;
+            }
+            #parent1-panel { order: 1; }
+            #parent2-panel { order: 2; }
+            #cross-panel { order: 3; }
+            #cross-btn { order: 4; margin-top: 0;} /* Position button after panels */
+            #garden-panel { order: 5; }
+            #results-panel-container { order: 6; }
+        }
+
+         @media (max-width: 768px) {
+            body { padding: 10px; }
+            h1 { font-size: clamp(1.5rem, 7vw, 2rem); }
+            .panel { padding: 15px; }
+            .phenotype-description { min-height: 3.5em; font-size: 0.85em; }
+            .genotype-selector button { padding: 8px 12px; font-size: 1rem; }
+            #offspring-garden { grid-template-columns: repeat(auto-fit, minmax(65px, 1fr)); gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="lab-container">
+        <h1>Laboratorio de Genética Mendeliana</h1>
+        <div class="main-grid">
+            <div id="parent1-panel" class="panel">
+                <h2>Progenitor 1</h2>
+                <div class="plant-card">
+                    <div id="parent1-visual" class="plant-visual"></div>
+                    <h3>Color de Flor (A)</h3>
+                    <p id="parent1-color-description" class="phenotype-description"></p>
+                    <div id="p1-color-selector" class="genotype-selector">
+                        <button data-parent="1" data-trait="color" data-genotype="AA" class="active">AA</button>
+                        <button data-parent="1" data-trait="color" data-genotype="Aa">Aa</button>
+                        <button data-parent="1" data-trait="color" data-genotype="aa">aa</button>
+                    </div>
+                    <h3>Altura de Tallo (T)</h3>
+                    <p id="parent1-height-description" class="phenotype-description"></p>
+                    <div id="p1-height-selector" class="genotype-selector">
+                        <button data-parent="1" data-trait="height" data-genotype="TT" class="active">TT</button>
+                        <button data-parent="1" data-trait="height" data-genotype="Tt">Tt</button>
+                        <button data-parent="1" data-trait="height" data-genotype="tt">tt</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="cross-panel" class="panel">
+                <h2>Zona de Cruce</h2>
+                <div id="punnett-square-container"></div>
+            </div>
+
+            <div id="parent2-panel" class="panel">
+                <h2>Progenitor 2</h2>
+                <div class="plant-card">
+                    <div id="parent2-visual" class="plant-visual"></div>
+                    <h3>Color de Flor (A)</h3>
+                    <p id="parent2-color-description" class="phenotype-description"></p>
+                    <div id="p2-color-selector" class="genotype-selector">
+                        <button data-parent="2" data-trait="color" data-genotype="AA" class="active">AA</button>
+                        <button data-parent="2" data-trait="color" data-genotype="Aa">Aa</button>
+                        <button data-parent="2" data-trait="color" data-genotype="aa">aa</button>
+                    </div>
+                    <h3>Altura de Tallo (T)</h3>
+                    <p id="parent2-height-description" class="phenotype-description"></p>
+                    <div id="p2-height-selector" class="genotype-selector">
+                        <button data-parent="2" data-trait="height" data-genotype="TT" class="active">TT</button>
+                        <button data-parent="2" data-trait="height" data-genotype="Tt">Tt</button>
+                        <button data-parent="2" data-trait="height" data-genotype="tt">tt</button>
+                    </div>
+                </div>
+            </div>
+
+            <button id="cross-btn">Cruzar</button>
+
+            <div id="garden-panel" class="panel">
+                <h2>Jardín de Descendencia</h2>
+                <div id="offspring-garden"></div>
+            </div>
+
+            <div id="results-panel-container" class="panel">
+                <h2>Análisis de Resultados</h2>
+                <ul id="results-panel"></ul>
+                <button id="analysis-btn">Ver Análisis y Leyes</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="analysis-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button id="modal-close-btn" class="modal-close">&times;</button>
+            <h2 id="modal-title">Análisis del Cruce Genético</h2>
+            <div id="modal-body">
+                <h3>Descripción del Cruce</h3>
+                <p id="cross-description"></p>
+                <h3>Leyes de Mendel Aplicadas</h3>
+                <p><strong>1. Ley de la Segregación:</strong> Durante la formación de gametos (óvulos y espermatozoides), los dos alelos de cada gen se separan (segregan) el uno del otro, de modo que cada gameto recibe solo un alelo.</p>
+                <p><strong>2. Ley de la Segregación Independiente:</strong> Los alelos de diferentes genes se distribuyen en los gametos de forma independiente el uno del otro. Esto es visible en este cruce dihíbrido, donde el color de la flor y la altura del tallo se heredan sin afectarse mutuamente.</p>
+                <h3>Conclusiones</h3>
+                <p id="cross-conclusion"></p>
+            </div>
+        </div>
+    </div>
+
+
+<script>
+let parent1Genotype = { color: 'AA', height: 'TT' };
+let parent2Genotype = { color: 'AA', height: 'TT' };
+let sounds = {};
+let audioStarted = false;
+
+// The p5.js global setup function. This runs once after the DOM is ready and p5 is loaded.
+function setup() {
+    noCanvas();
+
+    sounds.click = new p5.Oscillator('sine');
+    sounds.click.freq(880); sounds.click.amp(0); sounds.click.start();
+    sounds.click.play = () => { sounds.click.amp(0.3, 0.01); sounds.click.amp(0, 0.1, 0.05); };
+
+    sounds.pop = new p5.Oscillator('triangle');
+    sounds.pop.freq(440); sounds.pop.amp(0); sounds.pop.start();
+    sounds.pop.play = (v=0.2,r=1) => { sounds.pop.freq(440*r); sounds.pop.amp(v, 0.01); sounds.pop.amp(0, 0.2, 0.05); };
+
+    sounds.grow = new p5.Noise('white');
+    sounds.grow.amp(0); sounds.grow.start();
+    sounds.grow.play = () => { sounds.grow.amp(0.1, 0.1); sounds.grow.amp(0, 0.5, 0.2); };
+
+    document.querySelectorAll('.genotype-selector button').forEach(button => button.addEventListener('click', handleGenotypeSelection));
+    document.getElementById('cross-btn').addEventListener('click', handleCross);
+
+    const modal = document.getElementById('analysis-modal');
+    document.getElementById('modal-close-btn').onclick = () => modal.classList.remove('visible');
+    modal.onclick = (e) => { if (e.target === modal) modal.classList.remove('visible'); };
+
+    createPunnettGrid();
+    for (let i = 0; i < 16; i++) {
+        document.getElementById('offspring-garden').appendChild(document.createElement('div')).className = 'pot';
+    }
+
+    updateParentVisual('1', parent1Genotype);
+    updateParentVisual('2', parent2Genotype);
+    updatePhenotypeDescription('1', 'color', 'AA');
+    updatePhenotypeDescription('1', 'height', 'TT');
+    updatePhenotypeDescription('2', 'color', 'AA');
+    updatePhenotypeDescription('2', 'height', 'TT');
+}
+
+const plantSketch = (phenotype) => (p) => {
+    p.setup = () => {
+        const parentDiv = p.canvas.parentElement;
+        p.createCanvas(parentDiv.offsetWidth, parentDiv.offsetHeight);
+        p.noLoop();
+    };
+    p.draw = () => {
+        p.clear();
+        p.translate(p.width / 2, p.height);
+        let stemHeight = phenotype.height === 'tall' ? p.height * 0.6 : p.height * 0.35;
+        p.stroke(74, 222, 128); p.strokeWeight(4); p.line(0, 0, 0, -stemHeight);
+        p.noStroke(); p.fill(74, 222, 128);
+        p.ellipse(-15, -stemHeight * 0.5, 20, 10);
+        p.ellipse(15, -stemHeight * 0.7, 20, 10);
+        p.translate(0, -stemHeight - 5);
+        p.fill(phenotype.color === 'purple' ? p.color(167, 139, 250) : p.color(241, 245, 249));
+        p.stroke('#fcd34d'); p.strokeWeight(2);
+        for (let i = 0; i < 5; i++) {
+            p.ellipse(0, -15, 15, 25); p.rotate(p.TWO_PI / 5);
+        }
+        p.fill('#fcd34d'); p.noStroke(); p.ellipse(0, 0, 15, 15);
+    };
+};
+
+const offspringPlantSketch = (phenotype) => (p) => {
+    let growth = 0;
+    p.setup = () => {
+        const parent = p.canvas.parentElement;
+        p.createCanvas(parent.offsetWidth, parent.offsetHeight);
+        p.frameRate(30);
+    };
+    p.draw = () => {
+        p.clear();
+        growth = p.lerp(growth, 1, 0.05);
+        if (growth > 0.99) { growth = 1; p.noLoop(); }
+        p.translate(p.width/2, p.height);
+        let stemHeight = (phenotype.height === 'tall' ? p.height * 0.7 : p.height * 0.4) * growth;
+        p.stroke(74, 222, 128); p.strokeWeight(p.width*0.05); p.line(0,0,0, -stemHeight);
+        if(growth > 0.3){
+            p.fill(74, 222, 128); p.noStroke();
+            p.ellipse(-p.width*0.15, -stemHeight*0.5, p.width*0.3, p.height*0.1);
+        }
+        if(growth > 0.7){
+            p.translate(0, -stemHeight-5);
+            p.fill(phenotype.color === 'purple' ? p.color(167, 139, 250) : p.color(241, 245, 249));
+            p.stroke('#fcd34d'); p.strokeWeight(2);
+            for (let i = 0; i < 5; i++) {
+                p.ellipse(0, -p.height*0.12, p.width*0.15, p.height*0.2); p.rotate(p.TWO_PI / 5);
+            }
+            p.fill('#fcd34d'); p.noStroke(); p.ellipse(0, 0, p.width*0.15, p.height*0.15);
+        }
+    };
+};
+
+function getPhenotype(genotype) {
+    return {
+        color: genotype.color.includes('A') ? 'purple' : 'white',
+        height: genotype.height.includes('T') ? 'tall' : 'short'
+    };
+}
+
+function getGametes(genotype) {
+    const cAlleles = genotype.color.split('');
+    const hAlleles = genotype.height.split('');
+    const gametes = new Set();
+    for (let c of cAlleles) {
+        for (let h of hAlleles) { gametes.add(c + h); }
+    }
+    return Array.from(gametes);
+}
+
+function updateParentVisual(parentNum, genotype) {
+    const visualContainer = document.getElementById(`parent${parentNum}-visual`);
+    visualContainer.innerHTML = '';
+    new p5(plantSketch(getPhenotype(genotype)), visualContainer);
+}
+
+function startAudioContext() {
+    if (!audioStarted && getAudioContext().state !== 'running') {
+        getAudioContext().resume();
+        audioStarted = true;
+    }
+}
+
+function updatePhenotypeDescription(parentNum, trait, genotype) {
+    const messages = {
+        color: {
+            AA: 'Una flor de un púrpura intenso, un color que domina el jardín.',
+            Aa: 'Portadora de la herencia recesiva, esta flor luce un majestuoso color púrpura.',
+            aa: 'Pura y delicada, esta flor muestra un blanco nieve que resalta en la naturaleza.'
+        },
+        height: {
+            TT: 'Con un tallo que se alza orgulloso, buscando siempre la luz.',
+            Tt: 'Fuerte y alta, esta planta lleva en su interior el gen de una estatura más baja.',
+            tt: 'Compacta y robusta, una planta de tallo bajo que concentra su belleza cerca del suelo.'
+        }
+    };
+    const descriptionElement = document.getElementById(`parent${parentNum}-${trait}-description`);
+    if (descriptionElement) {
+        descriptionElement.style.opacity = 0;
+        setTimeout(() => {
+            descriptionElement.innerText = messages[trait][genotype];
+            descriptionElement.style.opacity = 1;
+        }, 200);
+    }
+}
+
+
+function handleGenotypeSelection(event) {
+    startAudioContext();
+    sounds.click.play();
+    const { parent, trait, genotype } = event.target.dataset;
+
+    if (parent === '1') parent1Genotype[trait] = genotype;
+    else parent2Genotype[trait] = genotype;
+
+    document.querySelectorAll(`button[data-parent="${parent}"][data-trait="${trait}"]`).forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+
+    updateParentVisual(parent, parent === '1' ? parent1Genotype : parent2Genotype);
+    updatePhenotypeDescription(parent, trait, genotype);
+}
+
+function createPunnettGrid() {
+    const container = document.getElementById('punnett-square-container');
+    container.innerHTML = '';
+    for(let i=0; i<25; i++) {
+        const cell = container.appendChild(document.createElement('div'));
+        cell.id = `cell-${i}`;
+        cell.className = 'punnett-cell';
+    }
+}
+
+function animatePunnettSquare(gametes1, gametes2) {
+    const timeouts = []; let delay = 200;
+    const g1_unique = [...new Set(gametes1)];
+    const g2_unique = [...new Set(gametes2)];
+
+    for(let i = 0; i < 4; i++) {
+        const g1 = g1_unique[i] || g1_unique[i % g1_unique.length] || '';
+        if(i < g1_unique.length) {
+          timeouts.push(setTimeout(() => { document.getElementById(`cell-${i + 1}`).innerText = g1; sounds.pop.play(); }, delay));
+          delay += 100;
+        }
+
+        const g2 = g2_unique[i] || g2_unique[i % g2_unique.length] || '';
+         if(i < g2_unique.length) {
+          timeouts.push(setTimeout(() => { document.getElementById(`cell-${(i + 1) * 5}`).innerText = g2; sounds.pop.play(); }, delay));
+          delay += 100;
+        }
+    }
+
+    const results = [];
+    for(let i=0; i<4; i++){
+        for(let j=0; j<4; j++){
+            const g1 = gametes1[j % gametes1.length];
+            const g2 = gametes2[i % gametes2.length];
+            const colorGeno = (g1[0] + g2[0]).split('').sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())).join('');
+            const heightGeno = (g1[1] + g2[1]).split('').sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())).join('');
+            results.push({color: colorGeno, height: heightGeno});
+
+            timeouts.push(setTimeout(() => {
+                const cell = document.getElementById(`cell-${(i+1)*5 + (j+1)}`);
+                cell.innerHTML = `<span>${colorGeno}</span><span>${heightGeno}</span>`;
+                cell.classList.add('visible', 'genotype-result');
+                sounds.pop.play(0.3, 1.5);
+            }, delay));
+            delay += 50;
+        }
+    }
+    return { results, timeouts };
+}
+
+function displayResults(results, phenotypeCounts) {
+    const resultsPanel = document.getElementById('results-panel');
+    resultsPanel.innerHTML = '<h3>Proporción Fenotípica</h3>';
+    for (const key in phenotypeCounts) {
+        const [color, height] = key.split('-');
+        const li = document.createElement('li');
+        li.innerHTML = `<span>${color === 'purple' ? 'Púrpura':'Blanca'}, ${height === 'tall' ? 'Alta':'Baja'}</span> <strong>${(phenotypeCounts[key] / 16) * 100}%</strong>`;
+        resultsPanel.appendChild(li);
+    }
+}
+
+function populateGarden(results) {
+    const garden = document.getElementById('offspring-garden');
+    garden.innerHTML = '';
+    let delay = 0;
+    for (let i = 0; i < 16; i++) {
+        const pot = garden.appendChild(document.createElement('div'));
+        pot.className = 'pot';
+        const plantContainer = pot.appendChild(document.createElement('div'));
+        plantContainer.className = 'plant-offspring';
+
+        setTimeout(() => {
+            sounds.grow.play();
+            new p5(offspringPlantSketch(getPhenotype(results[i])), plantContainer);
+        }, i * 120 + 500);
+    }
+}
+
+function showAnalysisModal(p1, p2, phenotypeCounts) {
+    document.getElementById('cross-description').innerText = `Se cruzó un progenitor con genotipo ${p1.color}${p1.height} con otro de genotipo ${p2.color}${p2.height}.`;
+    let conclusionText = 'Los resultados muestran una distribución de rasgos basada en la dominancia y la segregación de alelos.';
+    const isClassicDihybrid = phenotypeCounts['purple-tall'] === 9 && phenotypeCounts['purple-short'] === 3 && phenotypeCounts['white-tall'] === 3 && phenotypeCounts['white-short'] === 1;
+    if (isClassicDihybrid) {
+        conclusionText = 'Los resultados exhiben la clásica proporción fenotípica 9:3:3:1, una demostración perfecta de la Ley de Segregación Independiente de Mendel para un cruce dihíbrido entre dos heterocigotos completos.';
+    }
+    document.getElementById('cross-conclusion').innerText = conclusionText;
+    document.getElementById('analysis-modal').classList.add('visible');
+}
+
+let currentAnimationTimeouts = [];
+function handleCross() {
+    startAudioContext();
+    sounds.click.play(1, 1.5);
+    document.getElementById('cross-btn').disabled = true;
+    currentAnimationTimeouts.forEach(clearTimeout);
+    currentAnimationTimeouts = [];
+
+    createPunnettGrid();
+
+    const gametes1 = getGametes(parent1Genotype);
+    const gametes2 = getGametes(parent2Genotype);
+
+    const { results, timeouts } = animatePunnettSquare(gametes1, gametes2);
+    currentAnimationTimeouts = timeouts;
+
+    const finalTimeout = setTimeout(() => {
+        const phenotypeCounts = {};
+        results.forEach(res => {
+            const phenotype = getPhenotype(res);
+            const phenotypeKey = `${phenotype.color}-${phenotype.height}`;
+            phenotypeCounts[phenotypeKey] = (phenotypeCounts[phenotypeKey] || 0) + 1;
+        });
+
+        displayResults(results, phenotypeCounts);
+        populateGarden(results);
+
+        const analysisBtn = document.getElementById('analysis-btn');
+        analysisBtn.style.display = 'block';
+        analysisBtn.onclick = () => showAnalysisModal(parent1Genotype, parent2Genotype, phenotypeCounts);
+        document.getElementById('cross-btn').disabled = false;
+    }, timeouts.length * 50 + 1100);
+    currentAnimationTimeouts.push(finalTimeout);
+}
+
+// Ensure resize also redraws the p5 sketches
+window.onresize = () => {
+    updateParentVisual('1', parent1Genotype);
+    updateParentVisual('2', parent2Genotype);
+};
+</script>
+</body>
+</html>
+
+
+
