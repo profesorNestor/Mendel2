@@ -104,7 +104,7 @@
             background-color: #2a374a;
         }
         .punnett-cell:first-child {
-            background: transparent; /* Make top-left corner transparent */
+            background: transparent;
         }
         .genotype-result {
             opacity: 0;
@@ -145,11 +145,17 @@
             width: 100%;
             aspect-ratio: 1/1;
             background-color: #374151;
-            border-radius: 0 0 10px 10px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .pot:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 10px var(--accent-color);
         }
         .plant-offspring {
             width: 100%;
@@ -157,6 +163,70 @@
         }
         #results-panel ul { list-style: none; padding: 0; width: 100%; max-height: 400px; overflow-y: auto; }
         #results-panel li { background: #374151; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-size: clamp(0.9rem, 2vw, 1rem); display: flex; justify-content: space-between; align-items: center; }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
+            display: none; align-items: center; justify-content: center;
+            z-index: 1000; opacity: 0; transition: opacity 0.3s ease;
+        }
+        .modal-overlay.visible { display: flex; opacity: 1; }
+        .modal-content {
+            background: var(--secondary-bg); border: 1px solid var(--accent-color);
+            border-radius: 16px; padding: 30px; width: 90%; max-width: 600px;
+            max-height: 90vh; overflow-y: auto; position: relative;
+            transform: scale(0.9); transition: transform 0.3s ease;
+        }
+        .modal-overlay.visible .modal-content { transform: scale(1); }
+        .modal-close {
+            position: absolute; top: 15px; right: 20px; font-size: 2em;
+            color: var(--text-color); cursor: pointer; border: none; background: none;
+        }
+        .modal-body-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 25px;
+            align-items: center;
+            margin-top: 20px;
+        }
+        #modal-plant-visual {
+            width: 150px;
+            height: 150px;
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            margin: 0 auto;
+        }
+        #modal-genotype-list, #modal-phenotype-list {
+            list-style: none;
+            padding: 0;
+            width: 100%;
+        }
+        #modal-genotype-list li, #modal-phenotype-list li {
+            background: var(--primary-bg);
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+        .help-content h3 {
+            color: var(--accent-color);
+            margin-top: 20px;
+        }
+        .help-content p {
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .site-footer {
+            width: 100%;
+            text-align: center;
+            padding: 20px 0;
+            margin-top: 40px;
+            border-top: 1px solid var(--border-color);
+            color: #9ca3af;
+            font-size: 0.9rem;
+        }
 
         /* Responsive Design */
         @media (max-width: 1200px) {
@@ -167,6 +237,7 @@
             body { padding: 10px; }
             .panel { padding: 15px; }
             #config-panel .input-group { grid-template-columns: 1fr; }
+            .modal-body-grid { grid-template-columns: 1fr; text-align: center; }
         }
     </style>
 </head>
@@ -188,6 +259,7 @@
                     </div>
                     <div id="traits-config-container"></div>
                     <button id="update-sim-btn" class="styled-button">Aplicar y Reiniciar Simulación</button>
+                    <button id="help-btn" class="styled-button" style="background: var(--purple-color); margin-top: 10px;">Ayuda</button>
                 </div>
 
                 <div class="panel">
@@ -215,20 +287,61 @@
                 </div>
                 
                 <div id="garden-panel" class="panel">
-                    <h2>Jardín de Descendencia (Muestra)</h2>
+                    <h2>Jardín de Descendencia</h2>
                     <div id="offspring-garden"></div>
                 </div>
             </div>
         </div>
     </div>
+    
+    <!-- Offspring Info Modal -->
+    <div id="offspring-info-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button id="offspring-modal-close-btn" class="modal-close">&times;</button>
+            <h2 id="modal-title">Detalles del Descendiente</h2>
+            <div class="modal-body-grid">
+                <div id="modal-plant-visual"></div>
+                <div>
+                    <h3>Genotipo</h3>
+                    <ul id="modal-genotype-list"></ul>
+                    <h3>Fenotipo</h3>
+                    <ul id="modal-phenotype-list"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Help Modal -->
+    <div id="help-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button id="help-modal-close-btn" class="modal-close">&times;</button>
+            <h2>Guía de Uso del Simulador</h2>
+            <div class="help-content">
+                <h3>1. Configuración de Rasgos</h3>
+                <p>Usa el selector para elegir cuántos rasgos (1, 2 o 3) quieres simular. Puedes personalizar el nombre, los alelos (letra para dominante y recesivo) y el fenotipo (descripción) de cada rasgo. Recuerda que los alelos dominantes deben ser mayúsculas y los recesivos minúsculas.</p>
+                <h3>2. Selección de Progenitores</h3>
+                <p>Para cada progenitor (1 y 2), haz clic en los botones para seleccionar el genotipo de cada rasgo. El Cuadro de Punnett y el jardín se actualizarán automáticamente.</p>
+                <h3>3. Cuadro de Punnett</h3>
+                <p>Muestra todas las combinaciones de gametos y los genotipos resultantes de la descendencia. La animación te guiará a través del cruce.</p>
+                <h3>4. Jardín de Descendencia</h3>
+                <p>Visualiza las plantas resultantes del cruce. Cada flor representa a un descendiente. Puedes hacer clic y arrastrar para explorar todos los resultados. Haz clic en una flor individual para ver sus detalles genéticos.</p>
+                <h3>5. Análisis de Resultados</h3>
+                <p>Este panel muestra el resumen de las proporciones fenotípicas de la descendencia, calculadas a partir del cruce realizado.</p>
+            </div>
+        </div>
+    </div>
+
+    <footer class="site-footer">
+        <p>Autor: Msc Néstor Fabio Montoya Palacios</p>
+    </footer>
 
 <script>
 // --- INITIAL STATE & CONFIGURATION ---
 let state = {
     numTraits: 2,
     traits: [
-        { id: 't1', name: 'Color de Flor', dominant: 'A', recessive: 'a', phenoDom: 'Púrpura', phenoRec: 'Blanca' },
-        { id: 't2', name: 'Altura del Tallo', dominant: 'T', recessive: 't', phenoDom: 'Alta', phenoRec: 'Baja' },
+        { id: 't1', name: 'Altura del Tallo', dominant: 'T', recessive: 't', phenoDom: 'Alta', phenoRec: 'Baja' },
+        { id: 't2', name: 'Color de Flor', dominant: 'A', recessive: 'a', phenoDom: 'Púrpura', phenoRec: 'Blanca' },
         { id: 't3', name: 'Forma de Semilla', dominant: 'R', recessive: 'r', phenoDom: 'Lisa', phenoRec: 'Rugosa' }
     ],
     parent1Genotype: {},
@@ -315,11 +428,11 @@ const offspringPlantSketch = (phenotypes) => (p) => {
         growth = p.lerp(growth, 1, 0.08);
         if (growth > 0.99) { growth = 1; p.noLoop(); }
 
-        p.translate(p.width / 2, p.height * 0.9); 
+        p.translate(p.width / 2, p.height * 0.95); 
 
-        let stemHeight = ((phenotypes[0]?.phenotype === 'dominant' ? p.height * 0.45 : p.height * 0.25)) * growth;
+        let stemHeight = ((phenotypes[0]?.phenotype === 'dominant' ? p.height * 0.5 : p.height * 0.28)) * growth;
         p.stroke(74, 222, 128);
-        p.strokeWeight(p.width * 0.05);
+        p.strokeWeight(p.width * 0.06);
         p.line(0, 0, 0, -stemHeight);
 
         if (growth > 0.6) {
@@ -407,12 +520,12 @@ function renderParentSelectors() {
         container.innerHTML = '';
         state.traits.slice(0, state.numTraits).forEach(trait => {
             const { dominant: D, recessive: r } = trait;
-            const genotypes = [`${D}${D}`, `${D}${r}`, `${r}${r}`];
+            const genotypes = [`${D.toUpperCase()}${D.toUpperCase()}`, `${D.toUpperCase()}${r.toLowerCase()}`, `${r.toLowerCase()}${r.toLowerCase()}`];
             const currentGeno = state[`parent${pNum}Genotype`][trait.id];
             const group = document.createElement('div');
             group.className = 'trait-selector-group';
             group.innerHTML = `
-                <h3>${trait.name} (${D}/${r})</h3>
+                <h3>${trait.name} (${D.toUpperCase()}/${r.toLowerCase()})</h3>
                 <div class="genotype-selector" data-parent="${pNum}" data-trait-id="${trait.id}">
                     ${genotypes.map(g => `<button class="${g === currentGeno ? 'active' : ''}" data-genotype="${g}">${g}</button>`).join('')}
                 </div>`;
@@ -476,7 +589,12 @@ function animateGridFill(gametes1, gametes2) {
             for (let i = 0; i < activeTraits.length; i++) {
                 const trait = activeTraits[i];
                 const alleles = [g1[i], g2[i]];
-                alleles.sort((x, y) => x === trait.recessive ? 1 : -1);
+                alleles.sort((a, b) => {
+                    if (a.toLowerCase() === b.toLowerCase()) {
+                        return a === trait.dominant ? -1 : 1;
+                    }
+                    return a.toLowerCase().localeCompare(b.toLowerCase());
+                });
                 offspringGeno[trait.id] = alleles.join('');
                 offspringGenoString += offspringGeno[trait.id] + ' ';
             }
@@ -521,16 +639,57 @@ function populateGarden(allOffspring) {
     garden.innerHTML = '';
     const sampleSize = allOffspring.length; 
     for (let i = 0; i < sampleSize; i++) {
+        const offspringGeno = allOffspring[i];
         const pot = garden.appendChild(document.createElement('div'));
         pot.className = 'pot';
+        
+        pot.addEventListener('click', () => showOffspringModal(offspringGeno));
+
         const plantContainer = pot.appendChild(document.createElement('div'));
         plantContainer.className = 'plant-offspring';
-        const phenotypes = getPhenotypeForGenotype(allOffspring[i]);
+        const phenotypes = getPhenotypeForGenotype(offspringGeno);
         setTimeout(() => {
             playSound('grow');
             new p5(offspringPlantSketch(phenotypes), plantContainer);
         }, i * 50);
     }
+}
+
+function showOffspringModal(genotype) {
+    const modal = document.getElementById('offspring-info-modal');
+    const visualContainer = document.getElementById('modal-plant-visual');
+    const genotypeList = document.getElementById('modal-genotype-list');
+    const phenotypeList = document.getElementById('modal-phenotype-list');
+
+    if (visualContainer.p5Instance) {
+        visualContainer.p5Instance.remove();
+        visualContainer.p5Instance = null;
+    }
+    visualContainer.innerHTML = '';
+    genotypeList.innerHTML = '';
+    phenotypeList.innerHTML = '';
+
+    const phenotypes = getPhenotypeForGenotype(genotype);
+    const activeTraits = state.traits.slice(0, state.numTraits);
+
+    activeTraits.forEach((trait, index) => {
+        const genoLi = document.createElement('li');
+        genoLi.textContent = `${trait.name}: ${genotype[trait.id]}`;
+        genotypeList.appendChild(genoLi);
+
+        const phenoLi = document.createElement('li');
+        phenoLi.textContent = `${trait.name}: ${phenotypes[index].description}`;
+        phenotypeList.appendChild(phenoLi);
+    });
+    
+    modal.classList.add('visible');
+
+    setTimeout(() => {
+        if (visualContainer.p5Instance) {
+            visualContainer.p5Instance.remove();
+        }
+        visualContainer.p5Instance = new p5(plantSketch(phenotypes), visualContainer);
+    }, 10);
 }
 
 // --- EVENT LISTENERS & INITIALIZATION ---
@@ -591,12 +750,47 @@ function initializeApp() {
         playSound('click');
         state.traits.forEach((trait, i) => {
             trait.name = document.getElementById(`name-${trait.id}`).value;
-            trait.dominant = document.getElementById(`dom-${trait.id}`).value;
-            trait.recessive = document.getElementById(`rec-${trait.id}`).value;
+            let domAllele = document.getElementById(`dom-${trait.id}`).value.toUpperCase();
+            let recAllele = document.getElementById(`rec-${trait.id}`).value.toLowerCase();
+            
+            if(domAllele.toLowerCase() === recAllele){
+                recAllele = domAllele.toLowerCase() === 'a' ? 'b' : 'a';
+                 document.getElementById(`rec-${trait.id}`).value = recAllele;
+            }
+            
+            trait.dominant = domAllele;
+            trait.recessive = recAllele;
+
+            document.getElementById(`dom-${trait.id}`).value = trait.dominant;
+            document.getElementById(`rec-${trait.id}`).value = trait.recessive;
+
             trait.phenoDom = document.getElementById(`phenoDom-${trait.id}`).value;
             trait.phenoRec = document.getElementById(`phenoRec-${trait.id}`).value;
         });
         resetAndRenderAll();
+    });
+
+    const offspringModal = document.getElementById('offspring-info-modal');
+    document.getElementById('offspring-modal-close-btn').addEventListener('click', () => {
+        offspringModal.classList.remove('visible');
+    });
+    offspringModal.addEventListener('click', (e) => {
+        if (e.target === offspringModal) {
+            offspringModal.classList.remove('visible');
+        }
+    });
+    
+    const helpModal = document.getElementById('help-modal');
+    document.getElementById('help-btn').addEventListener('click', () => {
+        helpModal.classList.add('visible');
+    });
+    document.getElementById('help-modal-close-btn').addEventListener('click', () => {
+        helpModal.classList.remove('visible');
+    });
+    helpModal.addEventListener('click', (e) => {
+        if (e.target === helpModal) {
+            helpModal.classList.remove('visible');
+        }
     });
 
     makeGardenDraggable();
@@ -605,7 +799,7 @@ function initializeApp() {
 
 function resetAndRenderAll() {
     state.traits.forEach(trait => {
-        const defaultGeno = `${trait.dominant}${trait.recessive}`;
+        const defaultGeno = `${trait.dominant.toUpperCase()}${trait.recessive.toLowerCase()}`;
         state.parent1Genotype[trait.id] = defaultGeno;
         state.parent2Genotype[trait.id] = defaultGeno;
     });
